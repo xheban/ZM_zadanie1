@@ -111,7 +111,7 @@ def task3():
 def task4():
     imgwork4 = img.copy()
     imgwork4_HSV = cv.cvtColor(imgwork4, cv.COLOR_BGR2HSV)
-    value_v = input_handler()
+    value_v = input_handler(6)
     for x in range(0, len(imgwork4_HSV)):
         for y in range(0, len(imgwork4_HSV[0])):
             if imgwork4_HSV[x, y][2] +  value_v > 255:
@@ -181,7 +181,7 @@ def task6():
     thresholdB = cv.threshold(imgwork6, 200, 255, cv.THRESH_BINARY)[1]
     thresholdB = cv.erode(thresholdB, None, iterations=2)
     thresholdB = cv.dilate(thresholdB, None, iterations=4)
-    labels = measure.label(thresholdB, neighbors=8, background=0)
+    labels = measure.label(thresholdB, connectivity=2, background=0)
     mask = np.zeros(thresholdB.shape, dtype="uint8")
     for label in np.unique(labels):
     	if label == 0:
@@ -216,7 +216,7 @@ def task6():
                 thresholdD[x][y] = 255
             else:
                 thresholdD[x][y] = 0
-    labels = measure.label(thresholdD, neighbors=8, background=0)
+    labels = measure.label(thresholdD, connectivity=2, background=0)
     mask = np.zeros(thresholdD.shape, dtype="uint8")
     for label in np.unique(labels):
     	if label == 0:
