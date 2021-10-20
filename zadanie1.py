@@ -10,9 +10,19 @@ import cv2 as cv # nastroje na pracu s obrazkami / installed package is "opencv"
 import matplotlib.pyplot as plt # nastroje pre vystup na konzolu
 from skimage import measure
 from imutils import contours
+from PIL import Image, ImageTk
 import imutils
+from tkinter import Tk, Canvas, Button, Scale, HORIZONTAL
+from tkinter import DoubleVar
+from functools import partial
     
 img = cv.imread('lenna.png',1) #1 - farebná , 0- čiernobiela
+global work_img
+global contr_val
+contr_val = 0
+global bright_val
+bright_val = 0
+work_img = img.copy()
 imgwork5 = img.copy()
 
 # menu pre prácu
@@ -45,6 +55,8 @@ def choose_task():
         task5()
     elif task == '6' :
         task6()
+    elif task == '7' :
+        task7()
     elif task == '8' :
         task_test()
     elif task == '9' :
@@ -244,9 +256,246 @@ def task6():
     
 #test task
 def task_test():
-    print("test")
+    global work_img
+    # Window name in which image is displayed
+    window_name = 'Image'
+  
+    # Using cv2.rotate() method
+    # Using cv2.ROTATE_90_CLOCKWISE rotate
+    # by 90 degrees clockwise
+    image = cv.rotate(work_img,cv.ROTATE_90_CLOCKWISE)
+  
+    # Displaying the image
+    cv.imshow(window_name, image)
+    cv.waitKey(0)
+    
+#úloha 7
+def task7():
+    width = 1000;
+    height = 1000;
+    window = Tk()
+    window.title("image work")
+    window.configure(width=width, height=height)  
    
-#handling inputov
+    x_start_pos = calcualte_x_start_position(img.shape[0], width)
+    y_start_pos = calcualte_y_start_position(img.shape[1], height)
+    
+    canvas = Canvas(window, width = width, height = height)      
+    canvas.pack() 
+ 
+    bright_var = DoubleVar()
+    contr_var = DoubleVar()
+  
+    rotate_90_right_btn = Button(master = window, text="rotate right 90°",
+                                 width = 15,
+                                 command = partial(rotate_image_90_right,
+                                                   canvas,
+                                                   x_start_pos,
+                                                   y_start_pos))
+    rotate_90_right_btn.place(x = 10, y = 10)
+    rotate_90_left_btn = Button(master = window, text="rotate left 90°", 
+                                width = 15,
+                                command = partial(rotate_image_90_left,
+                                                  canvas,
+                                                  x_start_pos,
+                                                  y_start_pos))
+    rotate_90_left_btn.place(x = 10, y = 40)
+    
+    show_dark_spots_btn = Button(master = window, text = "darkest spots",
+                                 width = 15,
+                                 command = partial(show_dark_spots,canvas,
+                                                   x_start_pos,
+                                                   y_start_pos))
+    show_dark_spots_btn.place(x = 10, y = 70)
+    show_light_spots_btn = Button(master = window, text = "lightest spots",
+                                 width = 15,
+                                 command = partial(show_light_spots,canvas,                                                 
+                                                   x_start_pos,
+                                                   y_start_pos))
+    show_light_spots_btn.place(x = 10, y = 100)
+    brightness_bar = Scale(master = window, from_= -255, to=255, 
+                           orient=HORIZONTAL,width=22, length=150,
+                           label='Brightness',font=10,variable = bright_var,                         
+                           command = partial(calculate_brightness,canvas,
+                                             x_start_pos,y_start_pos))
+    brightness_bar.place(x = 150, y = 5)
+    contrast_bar = Scale(master = window, from_= -127, to=127, 
+                           orient=HORIZONTAL,width=22, length=150,
+                           label='Contrast',font=10, variable = contr_var,
+                           command = partial(calculate_contrast,canvas,
+                                             x_start_pos,y_start_pos))
+    contrast_bar.place(x = 320, y = 5)
+    
+    reset_btn = Button(master = window, text = "Reset", width = 12,
+                       command = partial(reset_img,canvas,
+                                         x_start_pos,y_start_pos,
+                                         contrast_bar,brightness_bar))
+    reset_btn.place(x = width - 100 , y = 10)
+    
+    reset_img(canvas,x_start_pos,y_start_pos,contrast_bar,brightness_bar)
+    
+    window.mainloop()
+    
+#pomocné úlohy pre task 7 ----------------------------------------------------
+def show_work_img(canvas,x_start,y_start):
+    global work_img
+    canvas.delete("all")
+    tmp_img = switch_RGB(work_img)
+    img_from_array = Image.fromarray(tmp_img)
+    display_img = ImageTk.PhotoImage(image=img_from_array)
+    canvas.image = display_img
+    canvas.create_image(x_start,y_start,tags='img',anchor='nw', image=display_img)
+
+def reset_img(canvas,x_start,y_start,c_bar,b_bar):
+    global work_img
+    global bright_val
+    bright_val = 0
+    global contr_val
+    contr_val = 0
+    canvas.delete("all")
+    imgwork7 = img.copy()
+    imgwork7 = switch_RGB(imgwork7)
+    img_from_array = Image.fromarray(imgwork7)
+    display_img = ImageTk.PhotoImage(image=img_from_array)
+    canvas.image = display_img
+    canvas.create_image(x_start,y_start,tags='img',anchor='nw', image=display_img)
+    c_bar.set(0)
+    b_bar.set(0)
+    work_img = img.copy()
+       
+    
+   
+def switch_RGB(img):
+    blue,green,red = cv.split(img)
+    img = cv.merge((red,green,blue))
+  
+    return img
+        
+def calcualte_x_start_position(img_width, canvas_width):
+    return (canvas_width - img_width) / 2
+
+def calcualte_y_start_position(img_height, canvas_height):
+    return (canvas_height - img_height) - 20
+
+def rotate_image_90_right(canvas,x_start,y_start):
+    global work_img
+    work_img = cv.rotate(work_img,cv.ROTATE_90_CLOCKWISE)
+    show_work_img(canvas,x_start,y_start)
+    
+
+def rotate_image_90_left(canvas,x_start,y_start):
+    global work_img
+    work_img = cv.rotate(work_img,cv.ROTATE_90_COUNTERCLOCKWISE) 
+    show_work_img(canvas,x_start,y_start)
+                         
+def show_dark_spots(canvas,x_start,y_start):
+    global work_img
+    gray = cv.cvtColor(work_img, cv.COLOR_BGR2GRAY)
+    imgwork_dark = cv.GaussianBlur(gray, (11, 11), 0)
+    thresholdD = cv.threshold(imgwork_dark, 55, 255, cv.THRESH_BINARY)[1]
+    thresholdD = cv.erode(thresholdD, None, iterations=2)
+    thresholdD = cv.dilate(thresholdD, None, iterations=4)
+    
+    for x in range(0, len(thresholdD)):
+        for y in range(0, len(thresholdD)):
+            if thresholdD[x][y] == 0:
+                thresholdD[x][y] = 255
+            else:
+                thresholdD[x][y] = 0
+    labels = measure.label(thresholdD, connectivity=2, background=0)
+    mask = np.zeros(thresholdD.shape, dtype="uint8")
+    for label in np.unique(labels):
+    	if label == 0:
+    		continue
+    	labelMask = np.zeros(thresholdD.shape, dtype="uint8")
+    	labelMask[labels == label] = 255
+    	numPixels = cv.countNonZero(labelMask)
+    	if numPixels > 300:
+    		mask = cv.add(mask, labelMask)
+
+    cnts = cv.findContours(mask.copy(), cv.RETR_EXTERNAL,
+    	cv.CHAIN_APPROX_SIMPLE)
+    cnts = imutils.grab_contours(cnts)
+    cnts = contours.sort_contours(cnts)[0]
+    
+    for (i, c) in enumerate(cnts):
+    	(x, y, w, h) = cv.boundingRect(c)
+    	((cX, cY), radius) = cv.minEnclosingCircle(c)
+    	cv.circle(work_img, (int(cX), int(cY)), int(radius),
+    		(255, 0, 0), 3)
+
+    show_work_img(canvas,x_start,y_start)
+    
+def show_light_spots(canvas,x_start,y_start):
+    global work_img
+    gray = cv.cvtColor(work_img, cv.COLOR_BGR2GRAY)
+    imgwork_dark = cv.GaussianBlur(gray, (11, 11), 0)
+    thresholdD = cv.threshold(imgwork_dark, 200, 255, cv.THRESH_BINARY)[1]
+    thresholdD = cv.erode(thresholdD, None, iterations=2)
+    thresholdD = cv.dilate(thresholdD, None, iterations=4)
+    
+    labels = measure.label(thresholdD, connectivity=2, background=0)
+    mask = np.zeros(thresholdD.shape, dtype="uint8")
+    for label in np.unique(labels):
+    	if label == 0:
+    		continue
+    	labelMask = np.zeros(thresholdD.shape, dtype="uint8")
+    	labelMask[labels == label] = 255
+    	numPixels = cv.countNonZero(labelMask)
+    	if numPixels > 300:
+    		mask = cv.add(mask, labelMask)
+
+    cnts = cv.findContours(mask.copy(), cv.RETR_EXTERNAL,
+    	cv.CHAIN_APPROX_SIMPLE)
+    cnts = imutils.grab_contours(cnts)
+    cnts = contours.sort_contours(cnts)[0]
+    
+    for (i, c) in enumerate(cnts):
+    	(x, y, w, h) = cv.boundingRect(c)
+    	((cX, cY), radius) = cv.minEnclosingCircle(c)
+    	cv.circle(work_img, (int(cX), int(cY)), int(radius),
+    		(0, 255, 0), 3)
+
+    show_work_img(canvas,x_start,y_start)
+
+def calc_brightness_contrast():
+    global work_img
+    global bright_val
+    global contr_val
+    
+    if bright_val != 0:
+        if bright_val > 0:
+            shadow = bright_val
+            highlight = 255
+        else:
+            shadow = 0
+            highlight = 255 + bright_val
+        alpha_b = (highlight - shadow)/255
+        gamma_b = shadow
+        buf = cv.addWeighted(img, alpha_b, img, 0, gamma_b)
+    else:
+        buf = img.copy()
+    if contr_val != 0:
+        f = float(131 * (contr_val + 127)) / (127 * (131 - contr_val))
+        alpha_c = f
+        gamma_c = 127*(1-f)
+        buf = cv.addWeighted(buf, alpha_c, buf, 0, gamma_c)
+    work_img = buf
+
+def calculate_brightness(canvas,x_start,y_start,value):
+    global bright_val
+    bright_val = int(value)
+    calc_brightness_contrast()
+    show_work_img(canvas,x_start,y_start)
+    
+def calculate_contrast(canvas,x_start,y_start,value):
+    global contr_val
+    contr_val = int(value)
+    calc_brightness_contrast()
+    show_work_img(canvas,x_start,y_start)
+
+#-----------------------------------------------------------------------------
+    
 def input_handler(inp):
     if inp == 1:
         try:
