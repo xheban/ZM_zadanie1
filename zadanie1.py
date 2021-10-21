@@ -15,6 +15,8 @@ import imutils
 from tkinter import Tk, Canvas, Button, Scale, HORIZONTAL
 from tkinter import DoubleVar
 from functools import partial
+import io
+import urllib, base64
     
 img = cv.imread('lenna.png',1) #1 - farebná , 0- čiernobiela
 global work_img
@@ -272,13 +274,11 @@ def task_test():
 #úloha 7
 def task7():
     width = 1000;
-    height = 1000;
+    height = 750;
     window = Tk()
     window.title("image work")
     window.configure(width=width, height=height)  
    
-    x_start_pos = calcualte_x_start_position(img.shape[0], width)
-    y_start_pos = calcualte_y_start_position(img.shape[1], height)
     
     canvas = Canvas(window, width = width, height = height)      
     canvas.pack() 
@@ -290,69 +290,83 @@ def task7():
                                  width = 15,
                                  command = partial(rotate_image_90_right,
                                                    canvas,
-                                                   x_start_pos,
-                                                   y_start_pos))
+                                                   width,
+                                                   height))
     rotate_90_right_btn.place(x = 10, y = 10)
     rotate_90_left_btn = Button(master = window, text="rotate left 90°", 
                                 width = 15,
                                 command = partial(rotate_image_90_left,
                                                   canvas,
-                                                  x_start_pos,
-                                                  y_start_pos))
+                                                  width,
+                                                  height))
     rotate_90_left_btn.place(x = 10, y = 40)
     
     show_dark_spots_btn = Button(master = window, text = "darkest spots",
                                  width = 15,
                                  command = partial(show_dark_spots,canvas,
-                                                   x_start_pos,
-                                                   y_start_pos))
+                                                   width,
+                                                   height))
     show_dark_spots_btn.place(x = 10, y = 70)
     show_light_spots_btn = Button(master = window, text = "lightest spots",
                                  width = 15,
                                  command = partial(show_light_spots,canvas,                                                 
-                                                   x_start_pos,
-                                                   y_start_pos))
+                                                   width,
+                                                   height))
     show_light_spots_btn.place(x = 10, y = 100)
     brightness_bar = Scale(master = window, from_= -255, to=255, 
                            orient=HORIZONTAL,width=22, length=150,
                            label='Brightness',font=10,variable = bright_var,                         
                            command = partial(calculate_brightness,canvas,
-                                             x_start_pos,y_start_pos))
+                                             width,
+                                             height))
     brightness_bar.place(x = 150, y = 5)
     contrast_bar = Scale(master = window, from_= -127, to=127, 
                            orient=HORIZONTAL,width=22, length=150,
                            label='Contrast',font=10, variable = contr_var,
                            command = partial(calculate_contrast,canvas,
-                                             x_start_pos,y_start_pos))
+                                             width,
+                                             height))
     contrast_bar.place(x = 320, y = 5)
+    
+    bright_hist_btn = Button(master = window, text= "Histogram of bright",
+                             width = 15,
+                             command = partial(show_histogram,canvas,
+                                               width,height))
+    bright_hist_btn.place(x = 10, y = 130)
     
     reset_btn = Button(master = window, text = "Reset", width = 12,
                        command = partial(reset_img,canvas,
-                                         x_start_pos,y_start_pos,
+                                         width,
+                                         height,
                                          contrast_bar,brightness_bar))
     reset_btn.place(x = width - 100 , y = 10)
     
-    reset_img(canvas,x_start_pos,y_start_pos,contrast_bar,brightness_bar)
+    reset_img(canvas,width,height,contrast_bar,brightness_bar)
     
     window.mainloop()
     
 #pomocné úlohy pre task 7 ----------------------------------------------------
-def show_work_img(canvas,x_start,y_start):
+def show_work_img(canvas,width,height):
     global work_img
     canvas.delete("all")
+    x_start = calcualte_x_start_position(work_img.shape[1], width)
+    y_start = calcualte_y_start_position(work_img.shape[0], height)
     tmp_img = switch_RGB(work_img)
     img_from_array = Image.fromarray(tmp_img)
     display_img = ImageTk.PhotoImage(image=img_from_array)
     canvas.image = display_img
     canvas.create_image(x_start,y_start,tags='img',anchor='nw', image=display_img)
 
-def reset_img(canvas,x_start,y_start,c_bar,b_bar):
+def reset_img(canvas,width,height,c_bar,b_bar):
     global work_img
+    work_img = img.copy()
     global bright_val
     bright_val = 0
     global contr_val
     contr_val = 0
     canvas.delete("all")
+    x_start = calcualte_x_start_position(work_img.shape[1], width)
+    y_start = calcualte_y_start_position(work_img.shape[0], height)
     imgwork7 = img.copy()
     imgwork7 = switch_RGB(imgwork7)
     img_from_array = Image.fromarray(imgwork7)
@@ -361,7 +375,7 @@ def reset_img(canvas,x_start,y_start,c_bar,b_bar):
     canvas.create_image(x_start,y_start,tags='img',anchor='nw', image=display_img)
     c_bar.set(0)
     b_bar.set(0)
-    work_img = img.copy()
+    
        
     
    
@@ -377,18 +391,18 @@ def calcualte_x_start_position(img_width, canvas_width):
 def calcualte_y_start_position(img_height, canvas_height):
     return (canvas_height - img_height) - 20
 
-def rotate_image_90_right(canvas,x_start,y_start):
+def rotate_image_90_right(canvas,width,height):
     global work_img
     work_img = cv.rotate(work_img,cv.ROTATE_90_CLOCKWISE)
-    show_work_img(canvas,x_start,y_start)
+    show_work_img(canvas,width,height)
     
 
-def rotate_image_90_left(canvas,x_start,y_start):
+def rotate_image_90_left(canvas,width,height):
     global work_img
     work_img = cv.rotate(work_img,cv.ROTATE_90_COUNTERCLOCKWISE) 
-    show_work_img(canvas,x_start,y_start)
+    show_work_img(canvas,width,height)
                          
-def show_dark_spots(canvas,x_start,y_start):
+def show_dark_spots(canvas,width,height):
     global work_img
     gray = cv.cvtColor(work_img, cv.COLOR_BGR2GRAY)
     imgwork_dark = cv.GaussianBlur(gray, (11, 11), 0)
@@ -424,9 +438,9 @@ def show_dark_spots(canvas,x_start,y_start):
     	cv.circle(work_img, (int(cX), int(cY)), int(radius),
     		(255, 0, 0), 3)
 
-    show_work_img(canvas,x_start,y_start)
+    show_work_img(canvas,width,height)
     
-def show_light_spots(canvas,x_start,y_start):
+def show_light_spots(canvas,width,height):
     global work_img
     gray = cv.cvtColor(work_img, cv.COLOR_BGR2GRAY)
     imgwork_dark = cv.GaussianBlur(gray, (11, 11), 0)
@@ -456,7 +470,7 @@ def show_light_spots(canvas,x_start,y_start):
     	cv.circle(work_img, (int(cX), int(cY)), int(radius),
     		(0, 255, 0), 3)
 
-    show_work_img(canvas,x_start,y_start)
+    show_work_img(canvas,width,height)
 
 def calc_brightness_contrast():
     global work_img
@@ -482,18 +496,32 @@ def calc_brightness_contrast():
         buf = cv.addWeighted(buf, alpha_c, buf, 0, gamma_c)
     work_img = buf
 
-def calculate_brightness(canvas,x_start,y_start,value):
+def calculate_brightness(canvas,width,height,value):
     global bright_val
     bright_val = int(value)
     calc_brightness_contrast()
-    show_work_img(canvas,x_start,y_start)
+    show_work_img(canvas,width,height)
     
-def calculate_contrast(canvas,x_start,y_start,value):
+def calculate_contrast(canvas,width,height,value):
     global contr_val
     contr_val = int(value)
     calc_brightness_contrast()
-    show_work_img(canvas,x_start,y_start)
+    show_work_img(canvas,width,height)
 
+def show_histogram(canvas,width,height):
+    global work_img
+    imgwork2 = work_img.copy()
+    imgwork2_HSV = cv.cvtColor(imgwork2, cv.COLOR_BGR2HSV)
+    histogram = cv.calcHist([imgwork2_HSV],[2],None,[256],[0,256])
+    plt.figure(figsize=(10,6))
+    plt.plot(histogram)
+    plt.xlim([0, 256])
+    plt.title('Histogram jasu')
+    plt.savefig('saved_figure.png')
+    plt.show()
+    img_plot = cv.imread('saved_figure.png',1)
+    work_img = img_plot.copy()
+    show_work_img(canvas,width,height)
 #-----------------------------------------------------------------------------
     
 def input_handler(inp):
