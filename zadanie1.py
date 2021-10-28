@@ -19,6 +19,8 @@ from functools import partial
 img = cv.imread('lenna.png',1) #1 - farebná , 0- čiernobiela
 global work_img
 global saved_img
+global prev_img
+global back_index
 global contr_val
 global x_size_label_inv
 global bright_val
@@ -26,7 +28,9 @@ global choosen_color
 
 choosen_color = (255,255,255)
 bright_val = 0
+back_index = 0
 work_img = img.copy()
+prev_img = []
 imgwork5 = img.copy()
 saved_img = img.copy()
 
@@ -40,6 +44,7 @@ def menu():
     print("\n Zmena jasu ručne: 4")
     print("\n Zmena jasu a kontrastu interaktívne: 5")
     print("\n Nájdenie najsvetlejších a najtmavších miest 6")
+    print("\n INTERAKTIVNE MENU: 7")
     print("\n Ukončenie aplikácie: 9")
     #task7()
     choose_task()
@@ -382,6 +387,37 @@ def task7():
                                                canvas,width,height,window))
     panel_place_btn.place(x = 385, y = 138)
     
+    start_of_width = Label(master = window, text="start for width:")
+    start_of_width.config(font=('Helvetica bold',14))
+    start_of_width.place(x=570,y=5)
+    end_of_width = Label(master = window, text="end for width:")
+    end_of_width.config(font=('Helvetica bold',14))
+    end_of_width.place(x=570,y=30)
+    start_of_height = Label(master = window, text="start for height:")
+    start_of_height.config(font=('Helvetica bold',14))
+    start_of_height.place(x=570,y=55)
+    end_of_height = Label(master = window, text="end for height:")
+    end_of_height.config(font=('Helvetica bold',14))
+    end_of_height.place(x=570,y=80)
+    
+    start_of_width_entry = Entry(master = window)
+    start_of_width_entry.place(x=700,y=10)
+    end_of_width_entry = Entry(master = window)
+    end_of_width_entry.place(x=700,y=35)
+    start_of_height_entry = Entry(master = window)
+    start_of_height_entry.place(x=700,y=60)
+    end_of_height_entry = Entry(master = window)
+    end_of_height_entry.place(x=700,y=85)
+    
+    crop_btn = Button(master = window, text= "Crop",
+                             width = 15,
+                             command = partial(crop_img,
+                                               start_of_width_entry,
+                                               end_of_width_entry,
+                                               start_of_height_entry,
+                                               end_of_height_entry,
+                                               canvas,width,height))
+    crop_btn.place(x = 630, y = 108)
     
     reset_btn = Button(master = window, text = "Reset", width = 12,
                        command = partial(reset_img,canvas,
@@ -391,11 +427,17 @@ def task7():
                                          start_of_color_panel_x_entry,
                                          start_of_color_panel_y_entry,
                                          size_x_entry,
-                                         size_y_entry))
+                                         size_y_entry,
+                                         start_of_width_entry,
+                                         end_of_width_entry,
+                                         start_of_height_entry,
+                                         end_of_height_entry))
+    
     reset_btn.place(x = width - 100 , y = 10)
     reset_img(canvas,width,height,contrast_bar,brightness_bar,
               start_of_color_panel_x_entry,start_of_color_panel_y_entry,
-              size_x_entry,size_y_entry)
+              size_x_entry,size_y_entry,start_of_width_entry,
+              end_of_width_entry,start_of_height_entry,end_of_height_entry)
     
     window.mainloop()
     
@@ -410,6 +452,36 @@ def show_work_img(canvas,width,height):
     display_img = ImageTk.PhotoImage(image=img_from_array)
     canvas.image = display_img
     canvas.create_image(x_start,y_start,tags='img',anchor='nw', image=display_img)
+   
+def crop_img(st_x,en_x,st_y,en_y,canvas,width,height):
+    global choosen_color
+    global work_img
+    global saved_img
+    global back_index
+    global prev_img
+    
+    try:
+        start_x = int(st_x.get())
+    except:
+        return
+    try:
+        end_x = int(en_x.get())
+    except:
+        return
+    try:
+        start_y = int(st_y.get())
+    except:
+        return
+    try:
+        end_y = int(en_y.get())
+    except:
+        return
+    
+    work_img = work_img[start_y:end_y, start_x:end_x]
+    saved_img = work_img
+    #prev_img[back_index] = work_img
+    #back_index = back_index + 1
+    show_work_img(canvas,width,height)    
     
 def choose_color():
     global choosen_color
@@ -426,7 +498,9 @@ def reset_slicers(c_bar,b_bar):
     c_bar.set(0)
     b_bar.set(0)
 
-def reset_img(canvas,width,height,c_bar,b_bar,st_x,st_y,sz_x,sz_y):
+def reset_img(canvas,width,height,c_bar,b_bar,st_x,st_y,sz_x,sz_y,str_x,end_x,
+              str_y,end_y):
+    
     global work_img
     work_img = img.copy()
     global saved_img
@@ -445,10 +519,14 @@ def reset_img(canvas,width,height,c_bar,b_bar,st_x,st_y,sz_x,sz_y):
     canvas.image = display_img
     canvas.create_image(x_start,y_start,tags='img',anchor='nw', image=display_img)
     reset_slicers(c_bar,b_bar)
-    st_x.select_clear()
-    st_y.select_clear()
-    sz_x.select_clear()
-    sz_y.select_clear()
+    st_x.delete(0, 'end')
+    st_y.delete(0, 'end')
+    sz_x.delete(0, 'end')
+    sz_y.delete(0, 'end')
+    str_x.delete(0, 'end')
+    end_x.delete(0, 'end')
+    str_y.delete(0, 'end')
+    end_y.delete(0, 'end')
     
 def switch_to_RGB(img):
     blue, green, red = cv.split(img)
@@ -468,20 +546,33 @@ def calcualte_y_start_position(img_height, canvas_height):
 def rotate_image_90_right(canvas,width,height):
     global work_img
     global saved_img
+    global prev_img
+    global back_index
+    
     work_img = cv.rotate(work_img,cv.ROTATE_90_CLOCKWISE)
     saved_img = work_img.copy()
+    #prev_img[back_index] = work_img
+    #back_index = back_index + 1
     show_work_img(canvas,width,height)
     
 def rotate_image_90_left(canvas,width,height):
     global work_img
     global saved_img
+    global prev_img
+    global back_index
+    
     work_img = cv.rotate(work_img,cv.ROTATE_90_COUNTERCLOCKWISE) 
     saved_img = work_img.copy()
+    #prev_img[back_index] = work_img
+    #back_index = back_index + 1
     show_work_img(canvas,width,height)
                          
 def show_dark_spots(canvas,width,height):
     global work_img
     global saved_img
+    global prev_img
+    global back_index
+    
     gray = cv.cvtColor(work_img, cv.COLOR_BGR2GRAY)
     imgwork_dark = cv.GaussianBlur(gray, (11, 11), 0)
     thresholdD = cv.threshold(imgwork_dark, 55, 255, cv.THRESH_BINARY)[1]
@@ -516,11 +607,16 @@ def show_dark_spots(canvas,width,height):
     	cv.circle(work_img, (int(cX), int(cY)), int(radius),
     		(255, 0, 0), 3)
     saved_img = work_img.copy()
+    #prev_img[back_index] = work_img
+    #back_index = back_index + 1
     show_work_img(canvas,width,height)
     
 def show_light_spots(canvas,width,height):
     global work_img
     global saved_img
+    global prev_img
+    global back_index
+    
     gray = cv.cvtColor(work_img, cv.COLOR_BGR2GRAY)
     imgwork_dark = cv.GaussianBlur(gray, (11, 11), 0)
     thresholdD = cv.threshold(imgwork_dark, 200, 255, cv.THRESH_BINARY)[1]
@@ -550,6 +646,8 @@ def show_light_spots(canvas,width,height):
     		(0, 255, 0), 3)
 
     saved_img = work_img.copy()
+    #prev_img[back_index] = work_img
+    #back_index = back_index + 1
     show_work_img(canvas,width,height)
 
 def calc_brightness_contrast():
@@ -557,6 +655,7 @@ def calc_brightness_contrast():
     global saved_img
     global bright_val
     global contr_val
+    
     
     if bright_val != 0:
         if bright_val > 0:
@@ -592,6 +691,9 @@ def calculate_contrast(canvas,width,height,value):
 def show_histogram(canvas,width,height,c_bar,b_bar):
     global work_img
     global saved_img
+    global prev_img
+    global back_index
+    
     imgwork2 = work_img.copy()
     imgwork2_HSV = cv.cvtColor(imgwork2, cv.COLOR_BGR2HSV)
     histogram = cv.calcHist([imgwork2_HSV],[2],None,[256],[0,256])
@@ -605,6 +707,8 @@ def show_histogram(canvas,width,height,c_bar,b_bar):
     work_img = img_plot.copy()
     saved_img = work_img.copy()
     reset_slicers(c_bar,b_bar)
+    #prev_img[back_index] = work_img
+    #back_index = back_index + 1
     show_work_img(canvas,width,height)
 
 def place_color_panel(start_x,start_y,size_x,size_y,canvas,width,height,window):
@@ -612,6 +716,8 @@ def place_color_panel(start_x,start_y,size_x,size_y,canvas,width,height,window):
     global work_img
     global saved_img
     global x_size_label_inv
+    global prev_img
+    global back_index
     
 
     x_st = int(start_x.get())
@@ -633,7 +739,21 @@ def place_color_panel(start_x,start_y,size_x,size_y,canvas,width,height,window):
             work_img[y,x][2] = choosen_color[2]
 
     saved_img = work_img.copy()
+    #prev_img[back_index] = work_img
+    #back_index = back_index + 1
     show_work_img(canvas,width,height)
+
+def go_back(canvas,width,height):
+    global prev_img
+    global work_img
+    global back_index
+    
+    try:
+        work_img = prev_img[back_index]
+        back_index= back_index -1
+        show_work_img(canvas,width,height)
+    except:
+        return
 #-----------------------------------------------------------------------------
     
 def input_handler(inp):
